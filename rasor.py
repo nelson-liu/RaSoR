@@ -41,6 +41,7 @@ class Config(object):
     self.ff_drop_x = 0.2                    # dropout rate of FF layers
     self.batch_size = 40
     self.max_num_epochs = 150               # max number of epochs to train for
+    self.patience = 10                      # Number of epochs without improvement before stopping
 
     self.num_bilstm_layers = 2              # number of BiLSTM layers, where BiLSTM is applied
     self.hidden_dim = 100                   # dimension of hidden state of each uni-directional LSTM
@@ -280,6 +281,7 @@ def _main(config, config_idx, train):
   epoch_results = []
   max_em = -np.inf
   max_f1 = -np.inf
+  epochs_with_no_improvement = 0
   np_rng = np.random.RandomState(config.seed // 2)
   for epoch in range(1, config.max_num_epochs+1):
     trn_loss, trn_acc, trn_samples_per_sec = _trn_epoch(config, model, data, epoch, np_rng)
@@ -287,9 +289,17 @@ def _main(config, config_idx, train):
     if dev_em > max_em:
       model.save('models/' + base_filename + '_best_em.pkl')
       max_em = dev_em
+      # Best EM so far, reset epochs_with_no_improvement
+      epochs_with_no_improvement = 0
     if dev_f1 > max_f1:
       model.save('models/' + base_filename + '_best_f1.pkl')
       max_f1 = dev_f1
+      # Best F1 so far, reset epochs_with_no_improvement
+      epochs_with_no_improvement = 0
+    if dev_em <= max_em and dev_f1 <= max_f1:
+      # Neither dev_em nor dev_f1 are better than max, increment epochs
+      # with no improvement.
+      epochs_with_no_improvement += 1
     if config.save_freq and epoch % config.save_freq == 0:
       model.save('models/' + base_filename + '_e{:03d}.pkl'.format(epoch))
     epoch_results.append(
@@ -298,12 +308,32 @@ def _main(config, config_idx, train):
       plot_epoch_results(epoch_results, 'logs/' + base_filename + '.png')
     logger.info('\n\nFinished epoch {} for: (config index {}) (samples/sec: {:<.1f})\n{}\n\nResults:\n{}\n\n'.format(
       epoch, config_idx, trn_samples_per_sec, config.format_compared(), format_epoch_results(epoch_results)))
+    # Check if we have to do early stopping.
+    if epochs_with_no_improvement > config.patience:
+      logger.info("Patience exceeded.")
+      break
   logger.info('END ' + title)
 
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--device', help='device e.g. cpu, gpu0, gpu1, ...', default='cpu')
+  parser.add_argument('--batch_size', help='batch size to use',
+                      default=40, type=int)
+  parser.add_argument('--learning_rate', help='learning rate to use',
+                      default=1e-3, type=float)
+  parser.add_argument('--lr_decay', help='Multiply the learning rate by this every lr_decay_freq updates',
+                      default=0.95, type=float)
+  parser.add_argument('--lr_decay_freq', help='How often to decay the learning rate',
+                      default=5000, type=int)
+  parser.add_argument('--patience', help='Patience to use for early stopping',
+                      default=10, type=int)
+  parser.add_argument('--word_emb_data_path_prefix', help='Word embedding path prefix',
+                      default='data/preprocessed_glove_with_unks.split')
+  parser.add_argument('--tokenized_trn_json_path', help='Tokenized train JSON path',
+                      default='data/train-v1.1.tokenized.split.json')
+  parser.add_argument('--tokenized_dev_json_path', help='Tokenized dev JSON path',
+                      default='data/dev-v1.1.tokenized.split.json')
   parser.add_argument('--train', help='whether to train', action='store_true')
   parser.add_argument('--cfg_idx', help='configuration index', type=int, default=0)
   parser.add_argument('test_json_path', nargs='?', help='test JSON file for which answers should be predicted')
@@ -313,7 +343,14 @@ if __name__ == '__main__':
     parser.error('Specify both test_json_path and pred_json_path, or only --train')
   config = _get_configs()[args.cfg_idx]
   config.device = args.device
+  config.batch_size = args.batch_size
+  config.learning_rate = args.learning_rate
+  config.lr_decay = args.lr_decay
+  config.lr_decay_freq = args.lr_decay_freq
+  config.patience = args.patience
+  config.word_emb_data_path_prefix = args.word_emb_data_path_prefix
+  config.tokenized_trn_json_path = args.tokenized_trn_json_path
+  config.tokenized_dev_json_path = args.tokenized_dev_json_path
   config.test_json_path = args.test_json_path
   config.pred_json_path = args.pred_json_path
   _main(config, args.cfg_idx, args.train)
-
