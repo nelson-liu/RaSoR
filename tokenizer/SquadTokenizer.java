@@ -1,4 +1,3 @@
-
 import static java.lang.Math.toIntExact;
 
 import java.io.IOException;
@@ -185,8 +184,10 @@ public class SquadTokenizer {
           JSONObject qaJson = (JSONObject) qaObj;
           String idStr = (String) qaJson.get("id");
           String questionStr = (String) qaJson.get("question");
-          TokenizedText questionTok = tokenize(questionStr, knownWords, unknownWords, split, jsonMetadata, verbose);
-          assertReconstruction("question", questionStr, questionTok, -1, -1);
+          // Replace non-breaking spaces with normal space.
+          String sanitizedQuestionStr = questionStr.replaceAll("\u200B", " ").replaceAll("\u007F", " ").trim();
+          TokenizedText questionTok = tokenize(sanitizedQuestionStr, knownWords, unknownWords, split, jsonMetadata, verbose);
+          assertReconstruction("question", sanitizedQuestionStr, questionTok, -1, -1);
           putTokens(qaJson, questionTok);
           jsonMetadata.allTokens.addAll(questionTok.tokens);
           if (!hasAnswers) {
