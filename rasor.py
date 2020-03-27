@@ -316,7 +316,7 @@ def _main(config, config_idx, train):
 
 
 if __name__ == '__main__':
-  parser = argparse.ArgumentParser()
+  parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   parser.add_argument('--device', help='device e.g. cpu, gpu0, gpu1, ...', default='cpu')
   parser.add_argument('--batch_size', help='batch size to use',
                       default=40, type=int)
