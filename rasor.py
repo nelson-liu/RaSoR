@@ -334,6 +334,9 @@ if __name__ == '__main__':
                       default='data/train-v1.1.tokenized.split.json')
   parser.add_argument('--tokenized_dev_json_path', help='Tokenized dev JSON path',
                       default='data/dev-v1.1.tokenized.split.json')
+  parser.add_argument('--seed', help='Random seed to use',
+                      default=np.random.random_integers(1e6, 1e9),
+                      type=int)
   parser.add_argument('--train', help='whether to train', action='store_true')
   parser.add_argument('--cfg_idx', help='configuration index', type=int, default=0)
   parser.add_argument('test_json_path', nargs='?', help='test JSON file for which answers should be predicted')
@@ -353,4 +356,5 @@ if __name__ == '__main__':
   config.tokenized_dev_json_path = args.tokenized_dev_json_path
   config.test_json_path = args.test_json_path
   config.pred_json_path = args.pred_json_path
+  config.seed = args.seed
   _main(config, args.cfg_idx, args.train)
