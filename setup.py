@@ -257,6 +257,15 @@ def _main(split, num_extra_embeddings, write_dummy_test):
 if __name__ == '__main__':
   logger = set_up_logger(log_filename=None, datetime=False)
   parser = argparse.ArgumentParser()
+  parser.add_argument('--glove-zip-path', type=str,
+                      help='Path to the GloVe zip (glove.840B.300d), if already downloaded.')
+  parser.add_argument('--glove-txt-path', type=str,
+                      help=('Path to the GloVe text file (glove.840B.300d), if '
+                            'already downloaded and extracted.'))
+  parser.add_argument('--trn-json-path', type=str,
+                      help='Path the JSON training dataset file.')
+  parser.add_argument('--dev-json-path', type=str,
+                      help='Path the JSON development dataset file.')
   parser.add_argument('--split',
     help='whether to split unknown hyphenated words which have a known constituent token', action='store_false')
   parser.add_argument('--num_extra_embeddings',
@@ -265,5 +274,15 @@ if __name__ == '__main__':
     help='whether to write a dummy test JSON file', action='store_true')
   args = parser.parse_args()
   logger.info('\n' + str(args))
+  if args.glove_zip_path:
+    GLOVE_ZIP_PATH = args.glove_zip_path
+  if args.glove_txt_path:
+    GLOVE_TXT_PATH = args.glove_txt_path
+  if args.trn_json_path:
+    TRN_JSON_PATH = args.trn_json_path
+  if args.dev_json_path:
+    DEV_JSON_PATH = args.dev_json_path
+  if not os.path.exists("data/"):
+    os.makedirs("data")
   _main(args.split, args.num_extra_embeddings, args.write_dummy_test)
 
